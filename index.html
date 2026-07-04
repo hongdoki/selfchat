@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SelfChat</title>
+  <meta name="color-scheme" content="light dark">
+</head>
+<body>
+
+  <h1>SelfChat</h1>
+  
+  <div id="chat-box"></div>
+
+
+  <form id="chat-form">
+    <input type="text" id="chat-input" placeholder="Type message or press Enter to swap turns..." size="60" autocomplete="off" autofocus>
+    <button type="submit">Send / Pass</button>
+    <br>
+    <label>
+      <input type="checkbox" id="chk-keep-turn"> 
+      Keep turn (Do not auto-flip perspective on send)
+    </label>
+  </form>
+
+
+  <a href="#" id="btn-export">Export .txt</a> | 
+  <a href="#" id="btn-flush">Flush Cache</a>
+
+  <script>
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const box = document.getElementById('chat-box');
+    const chkKeepTurn = document.getElementById('chk-keep-turn');
+    const btnExport = document.getElementById('btn-export');
+    const btnFlush = document.getElementById('btn-flush');
+
+    const STORAGE_KEY = 'selfchat_data';
+    
+    // Load state from cache or initialize defaults
+    let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+      messages: [],
+      currentAuthor: 0
+    };
+
+    renderAll();
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+
+      // If user typed nothing and checked "Keep turn", do absolutely nothing.
+      if (!text && chkKeepTurn.checked) return;
+
+      // If there is text, save it under the CURRENT author
+      if (text) {
+        state.messages.push({
+          author: state.currentAuthor,
+          text: text
+        });
+      }
+
+      // Auto-flip perspective unless checkbox is ticked
+      if (!chkKeepTurn.checked) {
+        state.currentAuthor = state.currentAuthor === 0 ? 1 : 0;
+      }
+
+      saveAndRender();
+      
+      // Reset input and ensure it stays focused
+      input.value = '';
+      input.focus();
+    });
+
+    btnFlush.addEventListener('click', (e) => {
+      e.preventDefault();
+      if(confirm("Permanently delete all messages?")) {
+        state = { messages: [], currentAuthor: 0 };
+        saveAndRender();
+      }
+    });
+
+    btnExport.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (state.messages.length === 0) return alert("Nothing to export.");
+      
+      let txtContent = "SelfChat Log\n====================\n\n";
+      state.messages.forEach(m => {
+        const sideLabel = m.author === 0 ? 'PERSONA A' : 'PERSONA B';
+        txtContent += `[${sideLabel}]\n${m.text}\n\n`;
+      });
+
+      const blob = new Blob([txtContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `selfchat_${new Date().getTime()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    function saveAndRender() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+    }
+
+    function renderAll() {
+      box.innerHTML = ''; 
+      
+      state.messages.forEach(m => {
+        const p = document.createElement('p');
+        const isCurrentTurn = m.author === state.currentAuthor;
+        
+        // Current turn is plain and right. Opponent is bolded and left.
+        if (isCurrentTurn) {
+          p.setAttribute('align', 'right');
+          p.innerHTML = m.text.replace(/\n/g, '<br>');
+        } else {
+          p.setAttribute('align', 'left');
+          p.innerHTML = `<b>${m.text.replace(/\n/g, '<br>')}</b>`;
+        }
+        
+        box.appendChild(p);
+      });
+      
+      // Scroll to the bottom of the page so the input area remains visible
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+  </script>
+
+</body>
+</html>
