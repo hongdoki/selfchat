@@ -9,9 +9,6 @@
   <style>
     /* Minimal, functional-only styling (brutalist: default fonts/colors). */
     html,
-    body {
-      margin: 0;
-    }
 
     /* Height is driven by JS (visualViewport) so the mobile keyboard is handled.
        100dvh is only a fallback for browsers without visualViewport. */
@@ -26,6 +23,16 @@
       flex: 1 1 auto;
       overflow-y: auto;
       overflow-wrap: break-word;
+      /* Stack messages from the bottom so the newest ones sit next to the
+         input. This keeps recent messages visible even with few messages or
+         when the page is zoomed while typing. */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Pushes the message list down so it grows upward from the bottom. */
+    #chat-messages {
+      margin-top: auto;
     }
 
     #chat-form {
@@ -45,10 +52,12 @@
 
   <h1>SelfChat</h1>
 
-  <div id="chat-box"></div>
+  <div id="chat-box">
+    <div id="chat-messages"></div>
+  </div>
 
   <form id="chat-form">
-    <textarea id="chat-input" rows="1" placeholder="Type message (Empty + Enter to swap turns)"
+    <textarea id="chat-input" rows="1" placeholder="type message"
       autocomplete="off" autofocus></textarea>
     <button type="submit">Send / Swap</button>
   </form>
@@ -62,6 +71,7 @@
     const form = document.getElementById('chat-form');
     const input = document.getElementById('chat-input');
     const box = document.getElementById('chat-box');
+    const messages = document.getElementById('chat-messages');
     const btnExport = document.getElementById('btn-export');
     const btnFlush = document.getElementById('btn-flush');
 
@@ -99,10 +109,8 @@
           author: state.currentAuthor,
           text: text
         });
-      } else {
-        // If empty, SWAP the turn
-        state.currentAuthor = state.currentAuthor === 0 ? 1 : 0;
-      }
+      // SWAP the turn
+      state.currentAuthor = state.currentAuthor === 0 ? 1 : 0;
 
       saveAndRender();
 
@@ -164,7 +172,7 @@
     }
 
     function renderAll() {
-      box.innerHTML = '';
+      messages.innerHTML = '';
 
       state.messages.forEach(m => {
         const p = document.createElement('p');
@@ -178,7 +186,7 @@
           p.innerHTML = `<b>${m.text.replace(/\n/g, '<br>')}</b>`;
         }
 
-        box.appendChild(p);
+        messages.appendChild(p);
       });
 
       // Scroll only the chat container so the input stays pinned at the bottom
