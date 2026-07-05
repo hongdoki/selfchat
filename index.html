@@ -13,9 +13,18 @@
       margin: 0;
     }
 
-    /* Height is driven by JS (visualViewport) so the mobile keyboard is handled.
+    /* Height AND position are driven by JS (visualViewport) so the mobile
+       keyboard is handled. Pinning the body to the visual viewport (rather
+       than the layout viewport) keeps the messages and input in view when the
+       keyboard opens, instead of leaving them hidden behind it.
        100dvh is only a fallback for browsers without visualViewport. */
     body {
+      /* Fixed to the top-left of the layout viewport; JS then offsets `top`
+         by visualViewport.offsetTop so the app tracks the visible area. */
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 0;
       height: 100dvh;
       display: flex;
       flex-direction: column;
@@ -67,8 +76,7 @@
   </div>
 
   <form id="chat-form">
-    <textarea id="chat-input" rows="1" placeholder="type message"
-      autocomplete="off" autofocus></textarea>
+    <textarea id="chat-input" rows="1" placeholder="type message" autocomplete="off" autofocus></textarea>
     <button type="submit">Send / Swap</button>
   </form>
 
@@ -93,8 +101,15 @@
     const vv = window.visualViewport;
     function fitToViewport() {
       if (!vv) return;
+      // Match the visible area and follow it as the keyboard scrolls the
+      // visual viewport down (offsetTop), so nothing hides behind the keyboard.
       document.body.style.height = vv.height + 'px';
-      box.scrollTop = box.scrollHeight;
+      document.body.style.top = vv.offsetTop + 'px';
+      // Scroll to the newest message AFTER the height change has reflowed,
+      // otherwise scrollHeight is read from the old (taller) layout.
+      requestAnimationFrame(() => {
+        box.scrollTop = box.scrollHeight;
+      });
     }
     if (vv) {
       vv.addEventListener('resize', fitToViewport);
@@ -198,6 +213,10 @@
         }
 
         messages.appendChild(p);
+        // Scroll only the chat container so the input stays pinned at the bottom
+        setTimeout(() => {
+          box.scrollTop = box.scrollHeight;
+        }, 50);
       });
     }
   </script>
