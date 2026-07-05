@@ -9,6 +9,9 @@
   <style>
     /* Minimal, functional-only styling (brutalist: default fonts/colors). */
     html,
+    body {
+      margin: 0;
+    }
 
     /* Height is driven by JS (visualViewport) so the mobile keyboard is handled.
        100dvh is only a fallback for browsers without visualViewport. */
@@ -16,6 +19,10 @@
       height: 100dvh;
       display: flex;
       flex-direction: column;
+      /* border-box keeps the padding inside the viewport height, so this
+         acts like an outer margin without introducing a page scrollbar. */
+      box-sizing: border-box;
+      padding: 8px;
     }
 
     /* The only scrollable area is the chat log itself. */
@@ -44,6 +51,9 @@
       /* Grows with content up to a cap, then scrolls internally. */
       max-height: 40vh;
       overflow-y: auto;
+      /* >= 16px stops mobile browsers from auto-zooming on focus, which was
+         pushing the Send button off-screen. */
+      font-size: 16px;
     }
   </style>
 </head>
@@ -109,6 +119,7 @@
           author: state.currentAuthor,
           text: text
         });
+      }
       // SWAP the turn
       state.currentAuthor = state.currentAuthor === 0 ? 1 : 0;
 
